@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sabrina Online Reader</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #1a1a1a;
+  --panel: #252525;
+  --panel2: #2e2e2e;
+  --border: #444;
+  --accent: #e8a020;
+  --accent2: #c4841a;
+  --text: #f0f0f0;
+  --muted: #999;
+  --btn-bg: #333;
+  --btn-hover: #444;
+  --btn-active: #555;
+  --btn-accent-bg: #e8a020;
+  --btn-accent-hover: #f0b030;
+  --btn-accent-text: #111;
+}
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Courier New', Courier, monospace;
+  overflow: hidden;
+}
+
+/* ── FULLSCREEN LAYOUT ── */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* ── TOP BAR ── */
+#topbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 16px;
+  background: var(--panel);
+  border-bottom: 2px solid var(--accent);
+  user-select: none;
+}
+
+#site-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: var(--accent);
+  letter-spacing: 2px;
+  white-space: nowrap;
+  text-shadow: 0 0 12px rgba(232,160,32,0.4);
+}
+
+#topbar-spacer { flex: 1; }
+
+#strip-counter {
+  font-size: 13px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+#strip-counter strong {
+  color: var(--accent);
+  font-size: 16px;
+}
+
+/* progress bar */
+#prog-wrap {
+  width: 160px;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+#prog-bar {
+  height: 100%;
+  background: var(--accent);
+  border-radius: 3px;
+  transition: width 0.2s;
+}
+
+/* ── COMIC STAGE ── */
+#stage {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  background: #111;
+}
+
+#comic-img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+  transition: opacity 0.15s;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+#comic-img.loading { opacity: 0.2; }
+
+/* big click zones */
+#click-prev, #click-next {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 30%;
+  cursor: pointer;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+}
+#click-prev { left: 0; justify-content: flex-start; }
+#click-next { right: 0; justify-content: flex-end; }
+#click-prev:hover .click-arrow, #click-next:hover .click-arrow { opacity: 1; }
+
+.click-arrow {
+  opacity: 0;
+  transition: opacity 0.15s;
+  padding: 12px;
+  font-size: 36px;
+  color: #fff;
+  text-shadow: 0 0 12px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.8);
+  pointer-events: none;
+  line-height: 1;
+}
+#click-prev .click-arrow { padding-left: 20px; }
+#click-next .click-arrow { padding-right: 20px; }
+
+/* loading overlay message */
+#load-msg {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.7);
+  color: var(--muted);
+  font-size: 11px;
+  padding: 4px 12px;
+  border-radius: 3px;
+  pointer-events: none;
+  transition: opacity 0.3s;
+}
+#load-msg.hidden { opacity: 0; }
+
+/* error state */
+#error-msg {
+  position: absolute;
+  color: #ff6666;
+  font-size: 13px;
+  text-align: center;
+  display: none;
+  pointer-events: none;
+}
+
+/* ── BOTTOM BAR ── */
+#bottombar {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--panel);
+  border-top: 2px solid var(--border);
+}
+
+/* scrubber row */
+#scrubber-row {
+  padding: 8px 16px 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#scrubber {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+#scrubber::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid #111;
+  box-shadow: 0 0 4px rgba(232,160,32,0.5);
+}
+#scrubber::-moz-range-thumb {
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid #111;
+}
+#scrubber-label {
+  font-size: 11px;
+  color: var(--muted);
+  white-space: nowrap;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* nav buttons row */
+#nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 6px 16px 10px;
+  flex-wrap: wrap;
+}
+
+.btn {
+  background: var(--btn-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  padding: 7px 14px;
+  cursor: pointer;
+  border-radius: 3px;
+  white-space: nowrap;
+  transition: background 0.1s, border-color 0.1s;
+  letter-spacing: 0.5px;
+}
+.btn:hover { background: var(--btn-hover); border-color: #666; }
+.btn:active { background: var(--btn-active); transform: scale(0.97); }
+
+.btn.accent {
+  background: var(--btn-accent-bg);
+  border-color: var(--accent);
+  color: var(--btn-accent-text);
+  font-weight: bold;
+  font-size: 14px;
+  padding: 7px 24px;
+}
+.btn.accent:hover { background: var(--btn-accent-hover); }
+
+.btn.sm { font-size: 11px; padding: 5px 10px; }
+
+/* jump input */
+#jump-wrap {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  padding: 2px 4px 2px 8px;
+}
+#jump-wrap label { font-size: 11px; color: var(--muted); white-space: nowrap; }
+#jump-input {
+  width: 52px;
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  font-weight: bold;
+  outline: none;
+  text-align: center;
+}
+#jump-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+#jump-go {
+  background: var(--border);
+  border: none;
+  color: var(--text);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+}
+#jump-go:hover { background: #555; }
+
+/* section jump pills */
+#section-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 16px 8px;
+  flex-wrap: wrap;
+}
+#section-row span {
+  font-size: 10px;
+  color: var(--muted);
+  margin-right: 4px;
+  white-space: nowrap;
+}
+.sec-btn {
+  background: var(--panel2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 10px;
+  padding: 3px 8px;
+  cursor: pointer;
+  border-radius: 2px;
+  transition: all 0.1s;
+}
+.sec-btn:hover { background: var(--btn-hover); color: var(--text); border-color: #666; }
+.sec-btn.active { background: var(--accent); color: #111; border-color: var(--accent); font-weight: bold; }
+
+/* keyboard hint */
+#kb-hint {
+  text-align: center;
+  font-size: 10px;
+  color: #555;
+  padding-bottom: 4px;
+  letter-spacing: 1px;
+}
+
+/* ── THUMBNAIL DRAWER ── */
+#drawer-toggle {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  background: rgba(30,30,30,0.85);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 11px;
+  padding: 5px 10px;
+  cursor: pointer;
+  border-radius: 3px;
+  z-index: 20;
+  transition: all 0.15s;
+}
+#drawer-toggle:hover { color: var(--accent); border-color: var(--accent); }
+
+#thumb-drawer {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(10,10,10,0.95);
+  z-index: 30;
+  display: none;
+  flex-direction: column;
+}
+#thumb-drawer.open { display: flex; }
+
+#drawer-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+#drawer-header h2 {
+  font-size: 14px;
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+#drawer-header span { font-size: 11px; color: var(--muted); flex: 1; }
+#drawer-close {
+  background: var(--btn-bg);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 12px;
+  padding: 5px 12px;
+  cursor: pointer;
+  border-radius: 3px;
+}
+#drawer-close:hover { background: #444; }
+
+#drawer-section-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+#drawer-section-row span { font-size: 10px; color: var(--muted); }
+
+#thumb-grid {
+  flex: 1;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 6px;
+  padding: 12px;
+}
+
+.thumb-item {
+  background: #1c1c1c;
+  border: 2px solid #333;
+  border-radius: 3px;
+  cursor: pointer;
+  text-align: center;
+  padding: 4px 4px 2px;
+  transition: border-color 0.1s;
+  overflow: hidden;
+}
+.thumb-item:hover { border-color: var(--accent); }
+.thumb-item.active { border-color: #fff; box-shadow: 0 0 8px rgba(255,255,255,0.3); }
+
+.thumb-img {
+  width: 100%;
+  height: 72px;
+  object-fit: contain;
+  display: block;
+  background: #111;
+}
+.thumb-num {
+  font-size: 9px;
+  color: var(--muted);
+  padding: 2px 0;
+}
+
+/* scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: #1a1a1a; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #666; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <div id="site-title">SABRINA ONLINE</div>
+    <div id="topbar-spacer"></div>
+    <div id="strip-counter">Strip <strong id="cur-num">1</strong> of 38</div>
+    <div id="prog-wrap"><div id="prog-bar" style="width:0%"></div></div>
+  </div>
+
+  <!-- COMIC STAGE -->
+  <div id="stage">
+    <div id="click-prev" onclick="step(-1)"><div class="click-arrow">‹</div></div>
+    <div id="click-next" onclick="step(1)"><div class="click-arrow">›</div></div>
+    <img id="comic-img" alt="Sabrina Online Comic Strip" />
+    <div id="error-msg">Strip not found — try skipping forward or back.</div>
+    <div id="load-msg">Loading...</div>
+    <button id="drawer-toggle" onclick="openDrawer()">⊞ All Strips</button>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <div id="bottombar">
+
+    <!-- SCRUBBER -->
+    <div id="scrubber-row">
+      <span style="font-size:10px;color:var(--muted);">1</span>
+      <input id="scrubber" type="range" min="1" max="38" value="1" oninput="scrubberInput(this.value)" onchange="scrubberChange(this.value)" />
+      <span style="font-size:10px;color:var(--muted);">38</span>
+      <span id="scrubber-label">#1</span>
+    </div>
+
+    <!-- SECTION JUMPS -->
+    <div id="section-row">
+      <span>Jump:</span>
+    </div>
+
+    <!-- NAV BUTTONS -->
+    <div id="nav-row">
+      <button class="btn sm" onclick="go(1)">|◀◀ First</button>
+      <button class="btn" onclick="step(-10)">◀◀ −10</button>
+      <button class="btn accent" onclick="step(-1)">◀ Prev</button>
+      <button class="btn accent" onclick="step(1)">Next ▶</button>
+      <button class="btn" onclick="step(10)">+10 ▶▶</button>
+      <button class="btn sm" onclick="go(38)">Last ▶▶|</button>
+      <div id="jump-wrap">
+        <label for="jump-input">#</label>
+        <input id="jump-input" type="number" min="1" max="38" value="1" onkeydown="if(event.key==='Enter')jumpGo()" />
+        <button id="jump-go" onclick="jumpGo()">Go</button>
+      </div>
+      <button class="btn sm" onclick="goRandom()" title="Random strip">★ Random</button>
+    </div>
+
+    <div id="kb-hint">← → ARROW KEYS · CLICK LEFT/RIGHT SIDE OF COMIC · DRAG SCRUBBER</div>
+  </div>
+
+</div>
+
+<!-- THUMBNAIL DRAWER -->
+<div id="thumb-drawer">
+  <div id="drawer-header">
+    <h2>ALL STRIPS</h2>
+    <span>Click any strip to jump to it</span>
+    <button id="drawer-close" onclick="closeDrawer()">✕ Close</button>
+  </div>
+  <div id="drawer-section-row">
+    <span>Jump to:</span>
+  </div>
+  <div id="thumb-grid"></div>
+</div>
+
+<script>
+const MIN = 1;
+const MAX = 38;
+
+// URL formatter — strips 1-9 get a leading zero
+function stripUrl(n) {
+  let s = n < 10 ? '0' + n : '' + n;
+  return 'https://www.sabrina-online.com/pages/SO-HC-' + s + '.jpg';
+}
+
+let current = 1;
+let drawerOpen = false;
+let drawerBuilt = false;
+let scrubbing = false;
+
+const img = document.getElementById('comic-img');
+const loadMsg = document.getElementById('load-msg');
+const errorMsg = document.getElementById('error-msg');
+const curNum = document.getElementById('cur-num');
+const progBar = document.getElementById('prog-bar');
+const scrubber = document.getElementById('scrubber');
+const scrubLabel = document.getElementById('scrubber-label');
+const jumpInput = document.getElementById('jump-input');
+
+function go(n) {
+  n = Math.max(MIN, Math.min(MAX, Math.round(n)));
+  current = n;
+
+  // Update UI
+  curNum.textContent = n;
+  progBar.style.width = ((n - MIN) / (MAX - MIN) * 100).toFixed(1) + '%';
+  scrubber.value = n;
+  scrubLabel.textContent = '#' + n;
+  jumpInput.value = n;
+
+  // Update section highlights
+  document.querySelectorAll('.sec-btn').forEach(b => {
+    const s = +b.dataset.start;
+    b.classList.toggle('active', n >= s && n < s + 100);
+  });
+
+  // Load image
+  img.classList.add('loading');
+  errorMsg.style.display = 'none';
+  loadMsg.classList.remove('hidden');
+  loadMsg.textContent = 'Loading #' + n + '...';
+
+  img.onload = () => {
+    img.classList.remove('loading');
+    loadMsg.classList.add('hidden');
+  };
+  img.onerror = () => {
+    img.classList.remove('loading');
+    loadMsg.classList.add('hidden');
+    errorMsg.style.display = 'block';
+  };
+  img.src = stripUrl(n);
+
+  // Highlight in drawer if open
+  if (drawerOpen) highlightDrawerThumb(n);
+}
+
+function step(delta) { go(current + delta); }
+
+function goRandom() { go(Math.floor(Math.random() * (MAX - MIN + 1)) + MIN); }
+
+function jumpGo() {
+  const v = parseInt(jumpInput.value);
+  if (!isNaN(v)) go(v);
+}
+
+// Scrubber: show label while dragging, only load on release
+function scrubberInput(v) {
+  scrubLabel.textContent = '#' + v;
+  scrubbing = true;
+}
+function scrubberChange(v) {
+  scrubbing = false;
+  go(parseInt(v));
+}
+
+// ── SECTION BUTTONS ──
+function buildSections(containerId) {
+  const container = document.getElementById(containerId);
+  for (let s = 1; s <= 800; s += 100) {
+    const e = Math.min(MAX, s + 99);
+    const btn = document.createElement('button');
+    btn.className = 'sec-btn';
+    btn.dataset.start = s;
+    btn.textContent = s === 1 ? '1–99' : s + 's';
+    btn.title = 'Strips ' + s + '–' + e;
+    btn.onclick = () => go(s);
+    container.appendChild(btn);
+  }
+}
+
+buildSections('section-row');
+buildSections('drawer-section-row');
+
+// ── THUMBNAIL DRAWER ──
+function buildDrawer() {
+  if (drawerBuilt) return;
+  drawerBuilt = true;
+  const grid = document.getElementById('thumb-grid');
+  for (let n = MIN; n <= MAX; n++) {
+    const item = document.createElement('div');
+    item.className = 'thumb-item' + (n === current ? ' active' : '');
+    item.id = 'th-' + n;
+    item.title = 'Strip #' + n;
+
+    const timg = document.createElement('img');
+    timg.className = 'thumb-img';
+    timg.loading = 'lazy';
+    timg.src = stripUrl(n);
+    timg.alt = '#' + n;
+
+    const num = document.createElement('div');
+    num.className = 'thumb-num';
+    num.textContent = '#' + n;
+
+    item.appendChild(timg);
+    item.appendChild(num);
+
+    const nn = n;
+    item.onclick = () => { go(nn); closeDrawer(); };
+    grid.appendChild(item);
+  }
+}
+
+function highlightDrawerThumb(n) {
+  document.querySelectorAll('.thumb-item').forEach(el => el.classList.remove('active'));
+  const el = document.getElementById('th-' + n);
+  if (el) {
+    el.classList.add('active');
+    el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+}
+
+function openDrawer() {
+  buildDrawer();
+  drawerOpen = true;
+  document.getElementById('thumb-drawer').classList.add('open');
+  highlightDrawerThumb(current);
+}
+
+function closeDrawer() {
+  drawerOpen = false;
+  document.getElementById('thumb-drawer').classList.remove('open');
+}
+
+// ── KEYBOARD ──
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT') return;
+  if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); step(1); }
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); step(-1); }
+  if (e.key === 'PageDown') { e.preventDefault(); step(10); }
+  if (e.key === 'PageUp') { e.preventDefault(); step(-10); }
+  if (e.key === 'Home') { e.preventDefault(); go(MIN); }
+  if (e.key === 'End') { e.preventDefault(); go(MAX); }
+  if (e.key === 'r' || e.key === 'R') goRandom();
+  if (e.key === 'Escape') closeDrawer();
+  if (e.key === 'g' || e.key === 'G') openDrawer();
+});
+
+// ── START ──
+go(1);
+</script>
+</body>
+</html>
