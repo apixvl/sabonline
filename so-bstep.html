@@ -441,7 +441,7 @@ html, body {
   <div id="topbar">
     <div id="site-title">SABRINA ONLINE</div>
     <div id="topbar-spacer"></div>
-    <div id="strip-counter">Strip <strong id="cur-num">1</strong> of 48</div>
+    <div id="strip-counter">Strip <strong id="cur-num">1</strong> of 49</div>
     <div id="prog-wrap"><div id="prog-bar" style="width:0%"></div></div>
   </div>
 
@@ -461,8 +461,8 @@ html, body {
     <!-- SCRUBBER -->
     <div id="scrubber-row">
       <span style="font-size:10px;color:var(--muted);">1</span>
-      <input id="scrubber" type="range" min="1" max="48" value="1" oninput="scrubberInput(this.value)" onchange="scrubberChange(this.value)" />
-      <span style="font-size:10px;color:var(--muted);">48</span>
+      <input id="scrubber" type="range" min="1" max="49" value="1" oninput="scrubberInput(this.value)" onchange="scrubberChange(this.value)" />
+      <span style="font-size:10px;color:var(--muted);">49</span>
       <span id="scrubber-label">#1</span>
     </div>
 
@@ -478,10 +478,10 @@ html, body {
       <button class="btn accent" onclick="step(-1)">◀ Prev</button>
       <button class="btn accent" onclick="step(1)">Next ▶</button>
       <button class="btn" onclick="step(10)">+10 ▶▶</button>
-      <button class="btn sm" onclick="go(48)">Last ▶▶|</button>
+      <button class="btn sm" onclick="go(49)">Last ▶▶|</button>
       <div id="jump-wrap">
         <label for="jump-input">#</label>
-        <input id="jump-input" type="number" min="1" max="48" value="1" onkeydown="if(event.key==='Enter')jumpGo()" />
+        <input id="jump-input" type="number" min="1" max="49" value="1" onkeydown="if(event.key==='Enter')jumpGo()" />
         <button id="jump-go" onclick="jumpGo()">Go</button>
       </div>
       <button class="btn sm" onclick="goRandom()" title="Random strip">★ Random</button>
@@ -507,7 +507,7 @@ html, body {
 
 <script>
 const MIN = 1;
-const MAX = 48;
+const MAX = 49;
 
 // URL formatter — strips 1-9 get a leading zero
 function stripUrl(n) {
