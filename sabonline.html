@@ -556,10 +556,16 @@ function go(n) {
     img.classList.remove('loading');
     loadMsg.classList.add('hidden');
   };
-  img.onerror = () => {
-    img.classList.remove('loading');
-    loadMsg.classList.add('hidden');
-    errorMsg.style.display = 'block';
+img.onerror = () => {
+    // If it failed while trying a GIF, try switching it to JPG
+    if (img.src.endsWith('.GIF')) {
+      img.src = img.src.replace('.GIF', '.JPG');
+    } else {
+      // Both GIF and JPG failed, show the error
+      img.classList.remove('loading');
+      loadMsg.classList.add('hidden');
+      errorMsg.style.display = 'block';
+    }
   };
   img.src = stripUrl(n);
 
@@ -615,11 +621,17 @@ function buildDrawer() {
     item.id = 'th-' + n;
     item.title = 'Strip #' + n;
 
-    const timg = document.createElement('img');
+const timg = document.createElement('img');
     timg.className = 'thumb-img';
     timg.loading = 'lazy';
     timg.src = stripUrl(n);
     timg.alt = '#' + n;
+    // Fallback for thumbnails if the original GIF fails
+    timg.onerror = () => {
+      if (timg.src.endsWith('.GIF')) {
+        timg.src = timg.src.replace('.GIF', '.JPG');
+      }
+    };
 
     const num = document.createElement('div');
     num.className = 'thumb-num';
